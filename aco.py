@@ -777,12 +777,11 @@ def create_population():
 
 
 def fitness(chromosome):
-    distance = 0
-
+    score = 0
     for i in range(len(target)):
-        distance += abs(i - target.index(chromosome[i]))
-
-    return 100 - distance
+        if chromosome[i] == target[i]:
+            score += 1
+    return score
 
 
 def roulette_selection(population):
