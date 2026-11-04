@@ -1637,59 +1637,80 @@ else:
 #prac12
 import random
 
-nodes = ['A', 'B', 'C', 'D']
-p = 0.1
+vertices = ['A', 'B', 'C', 'D']
 
-graph = {n: [x for x in nodes if x != n] for n in nodes}
-
-weights = {
-    ('A','B'): 10, ('A','C'): 10,
-    ('A','D'): 30, ('B','C'): 40,
-    ('C','D'): 20, ('B','D'): 10
+graph = {
+    'A': ['B', 'C', 'D'],
+    'B': ['A', 'C', 'D'],
+    'C': ['A', 'B', 'D'],
+    'D': ['A', 'B', 'C']
 }
 
-pheromone = {k: random.randint(1, 50) for k in weights}
+weights = {
+    'AB': 10, 'AC': 10, 'AD': 30,
+    'BC': 40, 'CD': 20, 'BD': 10
+}
 
-def get_value(d, u, v):
-    return d.get((u, v), d.get((v, u), 0))
+pheromone = {}
+p = 0.1
+
+def get_weight(u, v):
+    return weights.get(u + v, weights.get(v + u, 0))
+
+def get_pheromone(u, v):
+    return pheromone.get(u + v, pheromone.get(v + u, 0))
 
 def set_pheromone(u, v, value):
-    key = (u, v) if (u, v) in pheromone else (v, u)
+    key = u + v if u + v in pheromone else v + u
     pheromone[key] = round(value, 3)
 
-for r in range(5):
-    tours = []
+
+for u in vertices:
+    for v in graph[u]:
+        if u + v not in pheromone and v + u not in pheromone:
+            pheromone[u + v] = random.randint(1, 50)
+
+
+for iteration in range(5):
+    paths = []
 
     for ant in range(4):
         route = ['A']
+        current = 'A'
 
         while len(route) < 4:
-            current = route[-1]
             choices = [v for v in graph[current] if v not in route]
 
-            values = [
-                get_value(pheromone, current, v) / get_value(weights, current, v)
-                for v in choices
-            ]
+            probabilities = []
 
-            next_city = random.choices(choices, weights=values, k=1)[0]
+            for v in choices:
+                probabilities.append(
+                    get_pheromone(current, v) / get_weight(current, v)
+                )
+
+            next_city = random.choices(choices, weights=probabilities, k=1)[0]
+
             route.append(next_city)
+            current = next_city
 
         route.append('A')
-        tours.append(route)
+        paths.append(route)
 
-        cost = sum(get_value(weights, route[i], route[i+1]) for i in range(4))
-        print("Ant", ant + 1, route, "Distance:", cost)
+        cost = sum(get_weight(route[i], route[i+1]) for i in range(4))
+        print("Ant", ant + 1, "Tour:", route, "Distance:", cost)
 
     for key in pheromone:
         pheromone[key] *= (1 - p)
 
-    for route in tours:
-        cost = sum(get_value(weights, route[i], route[i+1]) for i in range(4))
+    for route in paths:
+        cost = sum(get_weight(route[i], route[i+1]) for i in range(4))
+        deposit = 1 / cost
 
         for i in range(4):
             u, v = route[i], route[i+1]
-            set_pheromone(u, v, get_value(pheromone, u, v) + 1 / cost)
+            set_pheromone(u, v, get_pheromone(u, v) + deposit)
+
+    print("Pheromone:", pheromone)
 
 print("\nFinal Pheromones:", pheromone)
 
